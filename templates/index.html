@@ -1,0 +1,577 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Agenda Virtual - Personería</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        header {
+            text-align: center;
+            color: white;
+            margin-bottom: 40px;
+        }
+
+        h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .subtitle {
+            font-size: 1.1em;
+            opacity: 0.9;
+        }
+
+        .content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-bottom: 30px;
+        }
+
+        .form-section, .eventos-section {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        }
+
+        .form-section h2, .eventos-section h2 {
+            color: #667eea;
+            margin-bottom: 25px;
+            font-size: 1.5em;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        label {
+            color: #333;
+            font-weight: 600;
+            margin-bottom: 8px;
+            font-size: 0.95em;
+        }
+
+        input, textarea {
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-family: inherit;
+            font-size: 1em;
+            transition: border-color 0.3s;
+        }
+
+        input:focus, textarea:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        textarea {
+            resize: vertical;
+            min-height: 80px;
+        }
+
+        button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 12px 30px;
+            border: none;
+            border-radius: 8px;
+            font-size: 1em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            width: 100%;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        .btn-delete {
+            background: #ff6b6b;
+            padding: 6px 12px;
+            font-size: 0.85em;
+            width: auto;
+        }
+
+        .btn-delete:hover {
+            box-shadow: 0 5px 15px rgba(255, 107, 107, 0.4);
+        }
+
+        .btn-edit {
+            background: #34d399;
+            padding: 6px 12px;
+            font-size: 0.85em;
+            width: auto;
+        }
+
+        .btn-edit:hover {
+            box-shadow: 0 5px 15px rgba(52, 211, 153, 0.4);
+        }
+
+        .eventos-list {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            max-height: 600px;
+            overflow-y: auto;
+        }
+
+        .evento-card {
+            background: #f8f9fa;
+            border-left: 4px solid #667eea;
+            padding: 15px;
+            border-radius: 8px;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .evento-card:hover {
+            transform: translateX(5px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+
+        .evento-titulo {
+            color: #667eea;
+            font-weight: 700;
+            font-size: 1.1em;
+            margin-bottom: 8px;
+        }
+
+        .evento-fecha {
+            color: #666;
+            font-size: 0.9em;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .evento-descripcion {
+            color: #555;
+            font-size: 0.95em;
+            margin-bottom: 12px;
+            line-height: 1.5;
+        }
+
+        .evento-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        .eventos-vacíos {
+            text-align: center;
+            color: #999;
+            padding: 40px 20px;
+            font-size: 1.1em;
+        }
+
+        .alerta {
+            padding: 12px 15px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            display: none;
+        }
+
+        .alerta.error {
+            background: #ffe0e0;
+            color: #d32f2f;
+            border: 1px solid #ffcdd2;
+            display: block;
+        }
+
+        .alerta.success {
+            background: #e8f5e9;
+            color: #388e3c;
+            border: 1px solid #c8e6c9;
+            display: block;
+        }
+
+        .stats {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+        }
+
+        .stat-box {
+            text-align: center;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 10px;
+        }
+
+        .stat-number {
+            font-size: 2.5em;
+            font-weight: 700;
+            margin-bottom: 10px;
+        }
+
+        .stat-label {
+            font-size: 1em;
+            opacity: 0.9;
+        }
+
+        @media (max-width: 768px) {
+            .content {
+                grid-template-columns: 1fr;
+            }
+
+            h1 {
+                font-size: 1.8em;
+            }
+
+            .stats {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 10px;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #667eea;
+            border-radius: 10px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #764ba2;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>📅 Agenda Virtual</h1>
+            <p class="subtitle">Personería Jurídica</p>
+        </header>
+
+        <div class="content">
+            <div class="form-section">
+                <h2>Nueva Cita</h2>
+                
+                <div class="alerta" id="alerta"></div>
+
+                <form id="eventForm">
+                    <div class="form-group">
+                        <label for="fecha">Fecha *</label>
+                        <input 
+                            type="date" 
+                            id="fecha" 
+                            name="fecha"
+                            required
+                        >
+                    </div>
+
+                    <div class="form-group">
+                        <label for="hora">Hora *</label>
+                        <input 
+                            type="time" 
+                            id="hora" 
+                            name="hora"
+                            required
+                        >
+                    </div>
+
+                    <div class="form-group">
+                        <label for="nombre_completo">Nombre Completo *</label>
+                        <input 
+                            type="text" 
+                            id="nombre_completo" 
+                            name="nombre_completo" 
+                            placeholder="Ej: Juan Pérez González"
+                            required
+                        >
+                    </div>
+
+                    <div class="form-group">
+                        <label for="telefono">Teléfono</label>
+                        <input 
+                            type="tel" 
+                            id="telefono" 
+                            name="telefono"
+                            placeholder="Ej: 3001234567"
+                        >
+                    </div>
+
+                    <div class="form-group">
+                        <label for="asunto">Asunto *</label>
+                        <select id="asunto" name="asunto" required>
+                            <option value="">Seleccione un asunto</option>
+                            <option value="victimas">Victimas</option>
+                            <option value="derecho_peticion">Derecho de Petición</option>
+                            <option value="tutela">Tutela</option>
+                            <option value="asesoria">Asesoría</option>
+                            <option value="declaracion_primera_vez">Declaración por Primera Vez</option>
+                            <option value="otros">Otros</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="zona">Zona de Residencia *</label>
+                        <select id="zona" name="zona" required>
+                            <option value="">Seleccione zona</option>
+                            <option value="urbana">Urbana</option>
+                            <option value="rural">Rural</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="atendido">¿Atendido?</label>
+                        <select id="atendido" name="atendido">
+                            <option value="no">No</option>
+                            <option value="si">Sí</option>
+                        </select>
+                    </div>
+
+                    <button type="submit">Agendar Cita</button>
+                </form>
+            </div>
+
+            <div class="eventos-section">
+                <h2>Citas Agendadas</h2>
+                <div class="eventos-list" id="eventosList">
+                    <div class="eventos-vacíos">No hay citas agendadas</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="stats">
+            <div class="stat-box">
+                <div class="stat-number" id="totalEventos">0</div>
+                <div class="stat-label">Citas Totales</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-number" id="citasHoy">0</div>
+                <div class="stat-label">Citas Hoy</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-number" id="pendientes">0</div>
+                <div class="stat-label">Pendientes</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_URL = '/api/eventos';
+        const formulario = document.getElementById('eventForm');
+        const eventosList = document.getElementById('eventosList');
+        const alertaDiv = document.getElementById('alerta');
+
+        // Cargar eventos al iniciar
+        document.addEventListener('DOMContentLoaded', () => {
+            cargarEventos();
+            // Recargar cada 30 segundos
+            setInterval(cargarEventos, 30000);
+        });
+
+        // Manejar envío del formulario
+        formulario.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const cita = {
+                fecha: document.getElementById('fecha').value,
+                hora: document.getElementById('hora').value,
+                nombre_completo: document.getElementById('nombre_completo').value,
+                telefono: document.getElementById('telefono').value,
+                asunto: document.getElementById('asunto').value,
+                zona: document.getElementById('zona').value,
+                atendido: document.getElementById('atendido').value
+            };
+
+            try {
+                const response = await fetch(API_URL, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(cita)
+                });
+
+                if (response.ok) {
+                    mostrarAlerta('✓ Cita agendada correctamente', 'success');
+                    formulario.reset();
+                    cargarEventos();
+                } else {
+                    mostrarAlerta('✗ Error al agendar la cita', 'error');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                mostrarAlerta('✗ Error de conexión', 'error');
+            }
+        });
+
+        // Cargar eventos desde API
+        async function cargarEventos() {
+            try {
+                const response = await fetch(API_URL);
+                const eventos = await response.json();
+
+                if (eventos.length === 0) {
+                    eventosList.innerHTML = '<div class="eventos-vacíos">No hay eventos programados</div>';
+                    actualizarEstadísticas([]);
+                    return;
+                }
+
+                eventosList.innerHTML = '';
+                eventos.forEach(evento => {
+                    const eventoElement = crearElementoEvento(evento);
+                    eventosList.appendChild(eventoElement);
+                });
+
+                actualizarEstadísticas(eventos);
+            } catch (error) {
+                console.error('Error al cargar eventos:', error);
+            }
+        }
+
+        // Crear elemento visual de la cita
+        function crearElementoEvento(cita) {
+            const div = document.createElement('div');
+            div.className = 'evento-card';
+            
+            const fechaFormato = new Date(cita.fecha + 'T00:00:00').toLocaleDateString('es-ES', {
+                weekday: 'long',
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric'
+            });
+
+            // Formatear el tipo de asunto
+            const asuntosFormat = {
+                'victimas': 'Víctimas',
+                'derecho_peticion': 'Derecho de Petición',
+                'tutela': 'Tutela',
+                'asesoria': 'Asesoría',
+                'declaracion_primera_vez': 'Declaración por Primera Vez',
+                'otros': 'Otros'
+            };
+
+            const asuntoTexto = asuntosFormat[cita.asunto] || cita.asunto;
+            const zonaTexto = cita.zona === 'urbana' ? 'Urbana' : 'Rural';
+            const atendidoValue = String(cita.atendido || '').toLowerCase();
+            const atendidoTexto = atendidoValue === 'si' ? '✅ Atendido' : '⏳ Pendiente';
+            const mostrarBotonEditar = atendidoValue !== 'si';
+
+            div.innerHTML = `
+                <div class="evento-titulo">${cita.nombre_completo}</div>
+                <div class="evento-fecha">📅 ${fechaFormato} | ⏰ ${cita.hora}</div>
+                <div class="evento-descripcion">
+                    📞 ${cita.telefono || 'Sin teléfono'}<br>
+                    📋 ${asuntoTexto}<br>
+                    🏠 Zona: ${zonaTexto}<br>
+                    ${atendidoTexto}
+                </div>
+                <div class="evento-actions">
+                    ${mostrarBotonEditar ? `<button class="btn-edit" onclick="marcarAtendido(${cita.id})">Confirmar</button>` : ''}
+                    <button class="btn-delete" onclick="eliminarEvento(${cita.id})">Eliminar</button>
+                </div>
+            `;
+
+            return div;
+        }
+
+        // Marcar como atendido
+        async function marcarAtendido(id) {
+            try {
+                const response = await fetch(`${API_URL}/${id}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ atendido: 'si' })
+                });
+
+                if (response.ok) {
+                    mostrarAlerta('✓ Cita marcada como atendida', 'success');
+                    cargarEventos();
+                } else {
+                    mostrarAlerta('✗ Error al actualizar la cita', 'error');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                mostrarAlerta('✗ Error de conexión', 'error');
+            }
+        }
+
+        // Eliminar evento
+        async function eliminarEvento(id) {
+            if (!confirm('¿Estás seguro de que deseas eliminar este evento?')) return;
+
+            try {
+                const response = await fetch(`${API_URL}/${id}`, {
+                    method: 'DELETE'
+                });
+
+                if (response.ok) {
+                    mostrarAlerta('✓ Evento eliminado', 'success');
+                    cargarEventos();
+                } else {
+                    mostrarAlerta('✗ Error al eliminar', 'error');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                mostrarAlerta('✗ Error de conexión', 'error');
+            }
+        }
+
+        // Mostrar alerta temporal
+        function mostrarAlerta(mensaje, tipo) {
+            alertaDiv.textContent = mensaje;
+            alertaDiv.className = `alerta ${tipo}`;
+            
+            setTimeout(() => {
+                alertaDiv.className = 'alerta';
+            }, 3000);
+        }
+
+        // Actualizar estadísticas
+        function actualizarEstadísticas(citas) {
+            const hoy = new Date().toISOString().split('T')[0];
+
+            const citasHoy = citas.filter(c => c.fecha === hoy).length;
+            const pendientes = citas.filter(c => c.atendido === 'no').length;
+
+            document.getElementById('totalEventos').textContent = citas.length;
+            document.getElementById('citasHoy').textContent = citasHoy;
+            document.getElementById('pendientes').textContent = pendientes;
+        }
+    </script>
+</body>
+</html>
