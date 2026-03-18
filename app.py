@@ -1,4 +1,4 @@
-import psycopg2 
+import psycopg2
 import os
 import logging
 from flask import Flask, render_template, request, jsonify
@@ -8,22 +8,15 @@ logging.basicConfig(level=logging.INFO)
 
 app = Flask(__name__)
 
-# Configuración DB (Render + Railway)
-db_config = {
-    'host': os.environ.get('DB_HOST'),
-    'user': os.environ.get('DB_USER'),
-    'password': os.environ.get('DB_PASSWORD'),
-    'database': os.environ.get('DB_NAME'),
-    'port': int(os.environ.get('DB_PORT', 3306))
-}
-
-# 🔌 Conexión a la BD
+# 🔌 Conexión a PostgreSQL (Render usa DATABASE_URL)
 def get_db_connection():
     try:
-        connection = mysql.connector.connect(**db_config)
+        connection = psycopg2.connect(
+            os.environ.get("DATABASE_URL")
+        )
         return connection
-    except Error as e:
-        app.logger.error(f"❌ Error conexión MySQL: {e}")
+    except Exception as e:
+        app.logger.error(f"❌ Error conexión PostgreSQL: {e}")
         return None
 
 
@@ -38,7 +31,7 @@ def crear_tabla():
 
         cursor.execute("""
         CREATE TABLE IF NOT EXISTS citas (
-            id INT AUTO_INCREMENT PRIMARY KEY,
+            id SERIAL PRIMARY KEY,
             fecha DATE,
             hora TIME,
             nombre_completo VARCHAR(255),
@@ -56,7 +49,7 @@ def crear_tabla():
 
         print("✅ Tabla 'citas' verificada/creada")
 
-    except Error as e:
+    except Exception as e:
         print("❌ Error creando tabla:", e)
 
 
@@ -84,30 +77,31 @@ def get_eventos():
         return jsonify([]), 200
 
     try:
-        cursor = connection.cursor(dictionary=True)
+        cursor = connection.cursor()
         cursor.execute("SELECT * FROM citas ORDER BY fecha ASC, hora ASC")
-        resultado = cursor.fetchall()
+        columnas = [desc[0] for desc in cursor.description]
+        resultado = []
 
-        for cita in resultado:
+        for fila in cursor.fetchall():
+            cita = dict(zip(columnas, fila))
+
             if cita.get('fecha'):
                 cita['fecha'] = cita['fecha'].isoformat()
 
             if cita.get('hora'):
-                total_seconds = int(cita['hora'].total_seconds())
-                hours = total_seconds // 3600
-                minutes = (total_seconds % 3600) // 60
-                seconds = total_seconds % 60
-                cita['hora'] = f"{hours:02d}:{minutes:02d}:{seconds:02d}"
+                cita['hora'] = str(cita['hora'])
 
             if cita.get('created_at'):
                 cita['created_at'] = cita['created_at'].isoformat()
+
+            resultado.append(cita)
 
         cursor.close()
         connection.close()
 
         return jsonify(resultado)
 
-    except Error as e:
+    except Exception as e:
         app.logger.exception("Error al cargar eventos")
         return jsonify([]), 200
 
@@ -125,7 +119,7 @@ def crear_evento():
 
         query = """INSERT INTO citas 
                    (fecha, hora, nombre_completo, telefono, asunto, zona, atendido)
-                   VALUES (%s, %s, %s, %s, %s, %s, %s)"""
+                   VALUES (%s, %s, %s, %s, %s, %s, %s) RETURNING id"""
 
         cursor.execute(query, (
             data.get('fecha'),
@@ -137,15 +131,15 @@ def crear_evento():
             data.get('atendido', 'no')
         ))
 
+        cita_id = cursor.fetchone()[0]
         connection.commit()
-        cita_id = cursor.lastrowid
 
         cursor.close()
         connection.close()
 
         return jsonify({'id': cita_id, 'message': 'Cita creada'}), 201
 
-    except Error as e:
+    except Exception as e:
         app.logger.exception("Error al crear evento")
         return jsonify({'error': str(e)}), 500
 
@@ -167,7 +161,7 @@ def eliminar_evento(evento_id):
 
         return jsonify({'message': 'Cita eliminada'}), 200
 
-    except Error as e:
+    except Exception as e:
         app.logger.exception("Error al eliminar")
         return jsonify({'error': str(e)}), 500
 
@@ -202,7 +196,7 @@ def actualizar_evento(evento_id):
 
         return jsonify({'message': 'Actualizado'}), 200
 
-    except Error as e:
+    except Exception as e:
         app.logger.exception("Error al actualizar")
         return jsonify({'error': str(e)}), 500
 
@@ -213,7 +207,7 @@ def saludo():
     return jsonify({'mensaje': 'Hola desde Flask en Render 🚀'})
 
 
-# 🚀 RUN
+# 🚀 RUN LOCAL
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 10000))
     app.run(host='0.0.0.0', port=port)
