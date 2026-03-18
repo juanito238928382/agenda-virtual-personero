@@ -9,35 +9,74 @@ logging.basicConfig(level=logging.INFO)
 
 app = Flask(__name__)
 
-# Configuración DB (usa variables de entorno en Render)
+# Configuración DB (Render + Railway)
 db_config = {
-    'host': os.environ.get('DB_HOST', 'localhost'),
-    'user': os.environ.get('DB_USER', 'root'),
-    'password': os.environ.get('DB_PASSWORD', ''),
-    'database': os.environ.get('DB_NAME', 'agenda_virtual')
+    'host': os.environ.get('DB_HOST'),
+    'user': os.environ.get('DB_USER'),
+    'password': os.environ.get('DB_PASSWORD'),
+    'database': os.environ.get('DB_NAME')
 }
 
+# 🔌 Conexión a la BD
 def get_db_connection():
     try:
         connection = mysql.connector.connect(**db_config)
         return connection
-    except Error:
-        app.logger.error("❌ No se pudo conectar a MySQL")
+    except Error as e:
+        app.logger.error(f"❌ Error conexión MySQL: {e}")
         return None
 
 
-# ✅ RUTA PRINCIPAL (IMPORTANTE PARA PROBAR)
+# 🧩 CREAR TABLA AUTOMÁTICAMENTE
+def crear_tabla():
+    connection = get_db_connection()
+    if connection is None:
+        return
+
+    try:
+        cursor = connection.cursor()
+
+        cursor.execute("""
+        CREATE TABLE IF NOT EXISTS citas (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            fecha DATE,
+            hora TIME,
+            nombre_completo VARCHAR(255),
+            telefono VARCHAR(50),
+            asunto VARCHAR(255),
+            zona VARCHAR(100),
+            atendido VARCHAR(10) DEFAULT 'no',
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+        """)
+
+        connection.commit()
+        cursor.close()
+        connection.close()
+
+        print("✅ Tabla 'citas' verificada/creada")
+
+    except Error as e:
+        print("❌ Error creando tabla:", e)
+
+
+# 👉 SE EJECUTA AL INICIAR
+crear_tabla()
+
+
+# ✅ RUTA PRINCIPAL
 @app.route('/')
 def index():
     return "FUNCIONA 🔥 (Render activo)"
 
 
-# 🔹 OJO: ESTA RUTA USA HTML (cuando ya conectes la BD)
+# 🖥️ HTML
 @app.route('/agenda')
 def agenda():
-    return render_template('ejemplo.html')
+    return render_template('index.html')
 
 
+# 📥 OBTENER EVENTOS
 @app.route('/api/eventos', methods=['GET'])
 def get_eventos():
     connection = get_db_connection()
@@ -50,28 +89,30 @@ def get_eventos():
         resultado = cursor.fetchall()
 
         for cita in resultado:
-            if 'fecha' in cita and cita['fecha']:
+            if cita.get('fecha'):
                 cita['fecha'] = cita['fecha'].isoformat()
 
-            if 'hora' in cita and cita['hora']:
+            if cita.get('hora'):
                 total_seconds = int(cita['hora'].total_seconds())
                 hours = total_seconds // 3600
                 minutes = (total_seconds % 3600) // 60
                 seconds = total_seconds % 60
                 cita['hora'] = f"{hours:02d}:{minutes:02d}:{seconds:02d}"
 
-            if 'created_at' in cita and cita['created_at']:
+            if cita.get('created_at'):
                 cita['created_at'] = cita['created_at'].isoformat()
 
         cursor.close()
         connection.close()
+
         return jsonify(resultado)
 
-    except Error:
+    except Error as e:
         app.logger.exception("Error al cargar eventos")
         return jsonify([]), 200
 
 
+# ➕ CREAR EVENTO
 @app.route('/api/eventos', methods=['POST'])
 def crear_evento():
     connection = get_db_connection()
@@ -109,6 +150,7 @@ def crear_evento():
         return jsonify({'error': str(e)}), 500
 
 
+# ❌ ELIMINAR
 @app.route('/api/eventos/<int:evento_id>', methods=['DELETE'])
 def eliminar_evento(evento_id):
     connection = get_db_connection()
@@ -130,6 +172,7 @@ def eliminar_evento(evento_id):
         return jsonify({'error': str(e)}), 500
 
 
+# ✏️ ACTUALIZAR
 @app.route('/api/eventos/<int:evento_id>', methods=['PUT'])
 def actualizar_evento(evento_id):
     connection = get_db_connection()
@@ -164,12 +207,13 @@ def actualizar_evento(evento_id):
         return jsonify({'error': str(e)}), 500
 
 
+# 👋 TEST
 @app.route('/api/saludo')
 def saludo():
     return jsonify({'mensaje': 'Hola desde Flask en Render 🚀'})
 
 
-# ✅ IMPORTANTE PARA RENDER
+# 🚀 RUN
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 10000))
     app.run(host='0.0.0.0', port=port)
