@@ -1,8 +1,7 @@
+import psycopg2 
 import os
 import logging
 from flask import Flask, render_template, request, jsonify
-import mysql.connector
-from mysql.connector import Error
 
 # Logging
 logging.basicConfig(level=logging.INFO)
